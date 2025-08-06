@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const container_1 = require("../container");
+const message_controller_1 = require("../controllers/message.controller");
+const router = (0, express_1.Router)();
+const messageController = (0, container_1.resolveInstance)(message_controller_1.MessageController);
+router.post('/send', auth_middleware_1.default, messageController.sendMessage);
+router.post('/schedule', auth_middleware_1.default, messageController.scheduleMessage);
+router.get('/scheduled', auth_middleware_1.default, messageController.getScheduledMessages);
+router.delete('/scheduled/:id', auth_middleware_1.default, messageController.cancelScheduledMessage);
+exports.default = router;

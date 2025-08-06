@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const container_1 = require("../container");
+const slack_controller_1 = require("../controllers/slack.controller");
+const router = (0, express_1.Router)();
+const slackController = (0, container_1.resolveInstance)(slack_controller_1.SlackController);
+router.get('/channels', auth_middleware_1.default, slackController.getSlackChannels);
+router.get('/check-connection', auth_middleware_1.default, slackController.checkConnection);
+exports.default = router;
