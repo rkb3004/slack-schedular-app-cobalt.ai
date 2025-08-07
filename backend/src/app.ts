@@ -5,6 +5,8 @@ import authRoutes from './routes/auth.routes';
 import messageRoutes from './routes/message.routes';
 import channelRoutes from './routes/channel.routes';
 import slackRoutes from './routes/slack.routes';
+import { resolveInstance } from './container';
+import { SlackAuthService } from './services/slackAuth.service';
 
 const app = express();
 
@@ -35,6 +37,31 @@ app.use('/api/channels', channelRoutes);
 
 // Slack-specific routes for API operations
 app.use('/api/slack', slackRoutes);
+
+// Direct access to the Slack callback route for compatibility with various URI structures
+// This ensures that both /api/auth/slack/callback and /api/slack/callback will work
+app.get('/api/slack/callback', async (req, res) => {
+  console.log('Received callback on /api/slack/callback route - redirecting to auth controller');
+  
+  // Import the handler directly
+  const slackAuthService = resolveInstance(SlackAuthService);
+  
+  try {
+    console.log('Slack OAuth callback received on alternate path:', { 
+      query: req.query,
+      hasCode: !!req.query.code,
+      hasError: !!req.query.error
+    });
+    
+    // Redirect to the auth route
+    res.redirect(`/api/auth/slack/callback${req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : ''}`);
+  } catch (error) {
+    console.error('Error in alternate callback path:', error);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    res.redirect(`${frontendUrl}/auth/error?message=${encodeURIComponent(`Redirect error: ${errorMessage}`)}`);
+  }
+});
 
 // Catch-all route for debugging 404s
 app.use('*', (req, res) => {

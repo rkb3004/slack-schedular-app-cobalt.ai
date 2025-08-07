@@ -15,6 +15,11 @@ router.get('/health', (req, res) => {
   res.json({ 
     status: 'Auth routes are working!',
     timestamp: new Date().toISOString(),
+    serverUrl: `${req.protocol}://${req.get('host')}`,
+    expectedRedirectUri: process.env.REDIRECT_URI,
+    matchStatus: process.env.REDIRECT_URI?.includes(req.get('host') || '') 
+      ? 'Matched - Host in redirect URI' 
+      : 'Mismatch - Check your REDIRECT_URI',
     endpoints: [
       'slack/url',
       'slack/callback',
@@ -22,9 +27,113 @@ router.get('/health', (req, res) => {
       'slack/test-url', 
       'slack/test-auth',
       'slack/test-token-exchange',
-      'slack/scopes'
+      'slack/scopes',
+      'slack/domain-check'
     ]
   });
+});
+
+// Special endpoint to check domain configuration
+router.get('/slack/domain-check', (req, res) => {
+  // Use the actual production backend URL instead of the current request host
+  const baseUrl = 'https://slack-schedular-app-cobalt-ai-1.onrender.com';
+  const configuredRedirectUri = process.env.REDIRECT_URI || '';
+  const expectedRedirectUri = `${baseUrl}/api/auth/slack/callback`;
+  const altExpectedRedirectUri = `${baseUrl}/api/slack/callback`;
+  
+  // Check if the configured redirect URI matches the expected pattern
+  const isMatch = configuredRedirectUri === expectedRedirectUri || 
+                 configuredRedirectUri === altExpectedRedirectUri;
+                 
+  // Check if at least the domain part matches
+  const domainMatch = configuredRedirectUri.includes(req.get('host') || '');
+  
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Slack Domain Configuration Check</title>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        pre { background: #f4f4f4; padding: 10px; border-radius: 5px; overflow: auto; white-space: pre-wrap; word-break: break-all; }
+        .button { display: inline-block; background: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 10px 0; }
+        .error { color: red; }
+        .warning { color: orange; }
+        .success { color: green; }
+        table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f2f2f2; }
+      </style>
+    </head>
+    <body>
+      <h1>Slack OAuth Domain Configuration Check</h1>
+      
+      <div class="${isMatch ? 'success' : domainMatch ? 'warning' : 'error'}">
+        <h2>Configuration Status: ${isMatch ? 'CORRECT ✅' : domainMatch ? 'PARTIAL MATCH ⚠️' : 'MISMATCH ❌'}</h2>
+      </div>
+      
+      <h3>Current Configuration</h3>
+      <table>
+        <tr>
+          <th>Parameter</th>
+          <th>Value</th>
+        </tr>
+        <tr>
+          <td>Server URL</td>
+          <td>${baseUrl}</td>
+        </tr>
+        <tr>
+          <td>Configured Redirect URI</td>
+          <td>${configuredRedirectUri || 'Not set'}</td>
+        </tr>
+        <tr>
+          <td>Expected Redirect URI</td>
+          <td>${expectedRedirectUri}</td>
+        </tr>
+      </table>
+      
+      ${!isMatch ? `
+        <div class="error">
+          <h3>Fix Required</h3>
+          <p>Your configured Redirect URI doesn't match your server's domain.</p>
+          
+          <h4>Recommended Action:</h4>
+          <ol>
+            <li>Update your .env file with the correct REDIRECT_URI: <code>${expectedRedirectUri}</code></li>
+            <li>Update your Slack App configuration with the same URI</li>
+          </ol>
+          
+          <h4>Example .env update:</h4>
+          <pre>REDIRECT_URI=${expectedRedirectUri}</pre>
+          
+          <a href="/api/slack/verify-client-id?test_redirect_uri=${encodeURIComponent(expectedRedirectUri)}" class="button">
+            Test With Correct Redirect URI
+          </a>
+        </div>
+      ` : `
+        <div class="success">
+          <h3>Your configuration looks good!</h3>
+          <p>The Redirect URI matches the current server domain.</p>
+        </div>
+      `}
+      
+      <h3>Slack App Configuration Steps</h3>
+      <ol>
+        <li>Go to <a href="https://api.slack.com/apps" target="_blank">api.slack.com/apps</a> and select your app</li>
+        <li>Click on "OAuth & Permissions" in the sidebar</li>
+        <li>Under "Redirect URLs", make sure you have <code>${expectedRedirectUri}</code> added</li>
+        <li>Save changes if you needed to update the URL</li>
+      </ol>
+      
+      <p>
+        <a href="/api/slack/debug" class="button">View Debug Info</a>
+        <a href="/api/slack/verify-client-id" class="button">Client ID Verification Tool</a>
+      </p>
+    </body>
+    </html>
+  `);
 });
 
 // Generate OAuth URL - This endpoint will be /api/auth/slack/url
@@ -54,9 +163,9 @@ router.get('/slack/url', (req, res) => {
     const redirectUri = process.env.REDIRECT_URI;
     const scope = 'channels:read,chat:write,channels:history';
     
-    // Ensure the redirect URI ends with /api/slack/callback
-    if (!redirectUri?.includes('/api/slack/callback')) {
-      console.warn('Warning: Redirect URI may not be correctly configured. Expected to end with /api/slack/callback, got:', redirectUri);
+    // Ensure the redirect URI contains either /api/slack/callback or /api/auth/slack/callback
+    if (!redirectUri?.includes('/api/slack/callback') && !redirectUri?.includes('/api/auth/slack/callback')) {
+      console.warn('Warning: Redirect URI may not be correctly configured. Expected to contain /api/slack/callback or /api/auth/slack/callback, got:', redirectUri);
     }
     
     // Log values for debugging
@@ -105,6 +214,18 @@ router.get('/slack/callback', async (req, res) => {
     // Check for error response from Slack
     if (req.query.error) {
       console.error('OAuth error from Slack:', req.query.error);
+      
+      // Special handling for Invalid client_id error
+      if (req.query.error === 'invalid_client_id' || 
+          (req.query.error_description && req.query.error_description.toString().includes('client_id'))) {
+        
+        console.error('CRITICAL: Invalid client ID error detected!');
+        console.error('Client ID being used:', process.env.SLACK_CLIENT_ID);
+        
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        return res.redirect(`${frontendUrl}/auth/error?message=${encodeURIComponent('Invalid Slack Client ID. The client ID provided does not match any registered Slack application. Please verify your Slack App settings and environment variables.')}`);
+      }
+      
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
       return res.redirect(`${frontendUrl}/auth/error?message=${encodeURIComponent(req.query.error.toString())}`);
     }
@@ -214,6 +335,113 @@ router.get('/slack/test-token-exchange', debugTokenExchange);
 
 // Documentation endpoint for Slack scopes
 router.get('/slack/scopes', getSlackScopesInfo);
+
+// Client ID verification and testing tool
+router.get('/slack/verify-client-id', (req, res) => {
+  const { test_client_id, test_redirect_uri } = req.query;
+  const env_client_id = process.env.SLACK_CLIENT_ID;
+  const env_redirect_uri = process.env.REDIRECT_URI;
+  const redirectUri = test_redirect_uri ? String(test_redirect_uri) : env_redirect_uri;
+  const scope = 'channels:read,chat:write,channels:history';
+  
+  // Create URLs for both possible redirect patterns for testing
+  const alternateRedirectUri = redirectUri?.replace('/api/auth/slack/callback', '/api/slack/callback') ||
+                              redirectUri?.replace('/api/slack/callback', '/api/auth/slack/callback');
+  
+  // Generate URLs with both the environment and test client IDs
+  const envAuthUrl = env_client_id ? 
+    `https://slack.com/oauth/v2/authorize?client_id=${encodeURIComponent(env_client_id.trim())}&scope=${encodeURIComponent(scope)}&redirect_uri=${encodeURIComponent(redirectUri || '')}` : 
+    null;
+  
+  const testAuthUrl = test_client_id ? 
+    `https://slack.com/oauth/v2/authorize?client_id=${encodeURIComponent(test_client_id.toString().trim())}&scope=${encodeURIComponent(scope)}&redirect_uri=${encodeURIComponent(redirectUri || '')}` : 
+    null;
+    
+  // Generate alternate redirect URI URL if applicable
+  const alternateAuthUrl = (test_client_id && alternateRedirectUri && alternateRedirectUri !== redirectUri) ? 
+    `https://slack.com/oauth/v2/authorize?client_id=${encodeURIComponent(test_client_id.toString().trim())}&scope=${encodeURIComponent(scope)}&redirect_uri=${encodeURIComponent(alternateRedirectUri)}` : 
+    null;
+
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Slack Client ID Verification</title>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        pre { background: #f4f4f4; padding: 10px; border-radius: 5px; overflow: auto; white-space: pre-wrap; word-break: break-all; }
+        .button { display: inline-block; background: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 10px 0; }
+        .error { color: red; }
+        .success { color: green; }
+        input[type="text"] { width: 100%; padding: 8px; margin: 8px 0; }
+        .client-id-box { border: 1px solid #ddd; padding: 10px; border-radius: 5px; margin: 20px 0; }
+      </style>
+    </head>
+    <body>
+      <h1>Slack Client ID Verification Tool</h1>
+      <p>This tool helps verify if your Slack Client ID is valid and correctly configured.</p>
+      
+      <div class="client-id-box">
+        <h2>Environment Client ID</h2>
+        <p><strong>ID from .env file:</strong> ${env_client_id ? 
+          `${env_client_id.substring(0, 5)}...${env_client_id.substring(env_client_id.length - 5)}` : 
+          'Not set'}</p>
+        <p><strong>Length:</strong> ${env_client_id?.length || 'N/A'} characters</p>
+        <p><strong>Has whitespace:</strong> ${env_client_id !== env_client_id?.trim() ? 'Yes (problematic)' : 'No'}</p>
+        
+        ${envAuthUrl ? `
+          <h3>Test URL with Environment Client ID</h3>
+          <pre>${envAuthUrl}</pre>
+          <a href="${envAuthUrl}" class="button">Test Environment Client ID</a>
+        ` : '<p class="error">No environment client ID available to test</p>'}
+      </div>
+      
+      <div class="client-id-box">
+        <h2>Test a Different Client ID</h2>
+        <form method="GET">
+          <label for="test_client_id">Enter a Client ID to test:</label>
+          <input type="text" id="test_client_id" name="test_client_id" 
+                 value="${test_client_id || ''}" 
+                 placeholder="Enter Slack Client ID to test...">
+          <label for="test_redirect_uri">Custom Redirect URI (optional):</label>
+          <input type="text" id="test_redirect_uri" name="test_redirect_uri" 
+                 value="${test_redirect_uri || ''}" 
+                 placeholder="Optional: Enter custom redirect URI...">
+          <button type="submit" class="button">Generate Test URL</button>
+        </form>
+        
+        ${testAuthUrl ? `
+          <h3>Test URL with Custom Client ID</h3>
+          <pre>${testAuthUrl}</pre>
+          <p><strong>Client ID being tested:</strong> ${test_client_id}</p>
+          <p><strong>Redirect URI:</strong> ${redirectUri || 'Not specified'}</p>
+          <a href="${testAuthUrl}" class="button">Test Custom Client ID</a>
+          
+          ${alternateAuthUrl ? `
+            <h3>Alternate Redirect Path Test</h3>
+            <p>Testing with alternate path: ${alternateRedirectUri}</p>
+            <pre>${alternateAuthUrl}</pre>
+            <a href="${alternateAuthUrl}" class="button">Test With Alternate Redirect</a>
+          ` : ''}
+        ` : ''}
+      </div>
+      
+      <h2>Common Issues with Client IDs</h2>
+      <ul>
+        <li><strong>Whitespace:</strong> The client ID should not have any spaces before or after it</li>
+        <li><strong>Incorrect copying:</strong> Make sure you've copied the entire client ID from your Slack App's Basic Information page</li>
+        <li><strong>App verification:</strong> Ensure your Slack app is properly verified and approved</li>
+        <li><strong>App reinstallation:</strong> Try deleting and recreating your Slack app, sometimes this resolves credential issues</li>
+        <li><strong>Environment file:</strong> Check that your .env file is properly loaded and formatted</li>
+      </ul>
+      
+      <p><a href="/api/slack/debug">Back to Debug Page</a></p>
+    </body>
+    </html>
+  `);
+});
 
 // Visual test page for the Slack OAuth flow
 router.get('/slack/test-auth', (req, res) => {

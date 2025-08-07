@@ -76,7 +76,25 @@ export const slackOAuthCallback = (req: Request, res: Response): void => {
         description: req.query.error_description
       });
       
-      // Redirect to frontend with error info
+      // Special case for invalid_client_id error
+      if (req.query.error === 'invalid_client_id') {
+        const clientId = process.env.SLACK_CLIENT_ID;
+        console.error('Invalid client_id error details:', {
+          configuredClientId: clientId,
+          clientIdLength: clientId?.length,
+          clientIdTrimmedLength: clientId?.trim().length,
+          requestedClientIdInError: req.query.client_id,
+          hasWhitespace: clientId !== clientId?.trim()
+        });
+        
+        // Create a special error URL that prompts the user to check client ID
+        const errorMsg = encodeURIComponent(
+          `Invalid Slack Client ID - Please verify your client ID using the verification tool at /api/slack/verify-client-id`
+        );
+        return res.redirect(`${process.env.FRONTEND_URL}/auth/callback?error=${errorMsg}&show_verify=true`);
+      }
+      
+      // Redirect to frontend with error info for other errors
       const errorMsg = encodeURIComponent(
         `Slack OAuth Error: ${req.query.error} - ${req.query.error_description || 'No description'}`
       );
