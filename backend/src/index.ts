@@ -65,6 +65,81 @@ app.get('/health', (_, res) => {
   res.status(200).json({ status: 'ok', message: 'Server is running' });
 });
 
+// Root route with API documentation and links
+app.get('/', (req, res) => {
+  const baseUrl = `${req.protocol}://${req.headers.host}`;
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Slack Scheduler API</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
+        h1 { color: #1d1c1d; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
+        h2 { color: #1264a3; margin-top: 30px; }
+        a { color: #1264a3; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .endpoint { background: #f9f9f9; padding: 12px; border-radius: 5px; margin-bottom: 10px; border-left: 4px solid #1264a3; }
+        code { background: #f1f1f1; padding: 2px 5px; border-radius: 3px; font-family: monospace; }
+        .method { font-weight: bold; color: #1264a3; }
+        .route { color: #000; }
+        .description { margin-top: 5px; }
+        .buttons { margin-top: 30px; }
+        .button { display: inline-block; background: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-right: 10px; }
+      </style>
+    </head>
+    <body>
+      <h1>Slack Scheduler API</h1>
+      <p>Welcome to the Slack Scheduler API. This service allows you to authenticate with Slack and schedule messages.</p>
+      
+      <h2>API Endpoints</h2>
+      
+      <div class="endpoint">
+        <span class="method">GET</span> <span class="route">${baseUrl}/health</span>
+        <div class="description">Health check endpoint to verify API status</div>
+      </div>
+      
+      <div class="endpoint">
+        <span class="method">GET</span> <span class="route">${baseUrl}/api/health</span>
+        <div class="description">Auth routes health check</div>
+      </div>
+      
+      <div class="endpoint">
+        <span class="method">GET</span> <span class="route">${baseUrl}/api/slack/url</span>
+        <div class="description">Generate a Slack OAuth URL for authentication</div>
+      </div>
+      
+      <div class="endpoint">
+        <span class="method">GET</span> <span class="route">${baseUrl}/api/slack/callback</span>
+        <div class="description">Slack OAuth callback endpoint</div>
+      </div>
+      
+      <div class="endpoint">
+        <span class="method">GET</span> <span class="route">${baseUrl}/api/slack/debug</span>
+        <div class="description">Debug endpoint for OAuth configuration</div>
+      </div>
+      
+      <div class="endpoint">
+        <span class="method">GET</span> <span class="route">${baseUrl}/api/slack/test-auth</span>
+        <div class="description">Visual test page for the Slack OAuth flow</div>
+      </div>
+      
+      <div class="buttons">
+        <a href="${baseUrl}/api/slack/debug" class="button">View OAuth Debug Info</a>
+        <a href="${baseUrl}/api/slack/test-auth" class="button">Test Slack OAuth Flow</a>
+        <a href="${process.env.FRONTEND_URL || '#'}" class="button">Go to Frontend</a>
+      </div>
+      
+      <p style="margin-top: 30px; font-size: 0.8em; color: #666;">
+        Environment: ${process.env.NODE_ENV || 'development'}<br>
+        Server Time: ${new Date().toISOString()}
+      </p>
+    </body>
+    </html>
+  `);
+});
+
 // Routes
 app.use('/api', routes);
 

@@ -1,6 +1,6 @@
 {
   "name": "slack-connect-backend",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Backend for Slack Connect application",
   "main": "dist/index.js",
   "scripts": {
