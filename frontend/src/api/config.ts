@@ -15,6 +15,9 @@ export const FALLBACK_URL = normalizeUrl(FALLBACK_API_URL);
 // For debugging
 console.log('API Base URL:', BASE_API_URL);
 
+// Helper function to get the backend base URL for API calls
+export const getBackendUrl = () => `${BASE_API_URL}/api`;
+
 // Auth endpoints - Based on server configuration
 // The routes in the backend are mounted as app.use('/api', routes);
 export const AUTH_ENDPOINTS = {

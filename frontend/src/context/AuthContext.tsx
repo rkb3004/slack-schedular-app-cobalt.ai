@@ -103,8 +103,16 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
         throw new Error('Server connection timed out. Please try again later or check your network connection.');
       } else if (error.response?.status === 404) {
         throw new Error(`API endpoint not found (404): ${error.config?.url}. Please check your server configuration.`);
-      } else if (error.message && error.message.includes('Invalid client_id parameter')) {
-        throw new Error('The Slack App client ID is invalid. This usually happens when the client ID in the backend .env file doesn\'t match a valid Slack App. Please check your Slack App configuration.');
+      } else if (
+        (error.message && error.message.includes('Invalid client_id parameter')) || 
+        (error.response?.data?.error && error.response?.data?.error.includes('Invalid client_id parameter')) ||
+        (typeof error === 'string' && error.includes('Invalid client_id parameter'))
+      ) {
+        throw new Error(
+          'The Slack App client ID is invalid. This may be caused by whitespace, encoding issues, or the ID not matching a valid Slack App. ' +
+          'Please use the Client ID Validator tool (linked below) to check for hidden whitespace or encoding issues. ' + 
+          'You may need to update your .env file with the correct client ID.'
+        );
       } else if (error.response?.data) {
         throw new Error(`Server error: ${JSON.stringify(error.response.data)}`);
       } else {

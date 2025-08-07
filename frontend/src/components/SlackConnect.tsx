@@ -123,6 +123,13 @@ const SlackConnect: FC<SlackConnectProps> = ({
               API URL: {env.VITE_API_URL || 'Not defined'}
               <br/>
               API Endpoint: {`${env.VITE_API_URL || 'Not defined'}/api/slack/url`}
+              <br/>
+              <Typography variant="caption" sx={{ mt: 1, display: 'block' }}>
+                If you're seeing a "Invalid client_id parameter" error, please check the 
+                <a href={`${env.VITE_API_URL}/validator/validate-client-id`} target="_blank" rel="noopener noreferrer" style={{ marginLeft: 5 }}>
+                  Client ID Validator
+                </a>
+              </Typography>
             </Box>
           </Alert>
         )}

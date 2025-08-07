@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Slack Connect</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+        Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    }
+    #root-error {
+      display: none;
+      margin: 20px;
+      padding: 20px;
+      border: 1px solid #f44336;
+      border-radius: 4px;
+      background-color: #ffebee;
+    }
+    #loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+  </style>
+  <script type="module" crossorigin src="/assets/index-7c1bd95b.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/vendor-38183e8a.js">
+  <link rel="stylesheet" href="/assets/index-5265c558.css">
+</head>
+<body>
+  <div id="loading">Loading application...</div>
+  <div id="root"></div>
+  <div id="root-error">
+    <h2>Application Error</h2>
+    <p>The application failed to load. Please check the console for details.</p>
+    <button onclick="window.location.reload()">Reload Page</button>
+  </div>
+  
+  <script>
+    // Make environment variables globally available to avoid TypeScript issues
+    window.env = {
+      VITE_API_URL: "https://slack-schedular-app-cobalt-ai-1.onrender.com",
+      BASE_URL: window.location.origin
+    };
+    
+    // Safety timeout - if app doesn't load in 10 seconds, show error
+    const timeout = setTimeout(() => {
+      const rootElement = document.getElementById('root');
+      const loadingElement = document.getElementById('loading');
+      const errorElement = document.getElementById('root-error');
+      
+      if (rootElement && rootElement.childNodes.length === 0) {
+        console.error('Application failed to render after timeout');
+        if (loadingElement) loadingElement.style.display = 'none';
+        if (errorElement) errorElement.style.display = 'block';
+      }
+    }, 10000);
+    
+    window.addEventListener('load', () => {
+      const loadingElement = document.getElementById('loading');
+      if (loadingElement) {
+        loadingElement.style.display = 'none';
+      }
+      clearTimeout(timeout);
+    });
+    
+    // Global error handler
+    window.addEventListener('error', (event) => {
+      console.error('Global error caught:', event.error);
+      const loadingElement = document.getElementById('loading');
+      const errorElement = document.getElementById('root-error');
+      
+      if (loadingElement) loadingElement.style.display = 'none';
+      if (errorElement) errorElement.style.display = 'block';
+    });
+  </script>
+  
+</body>
+</html>
