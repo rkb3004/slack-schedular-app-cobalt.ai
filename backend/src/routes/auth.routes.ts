@@ -93,8 +93,6 @@ router.get('/slack/callback', async (req, res) => {
   }
 });
 
-// Add this new endpoint for debugging purposes
-
 // Debug endpoint to check Slack configuration
 router.get('/slack/debug', (req, res) => {
   try {
