@@ -80,6 +80,8 @@ router.get('/slack/url', (req, res) => {
 router.get('/slack/callback', async (req, res) => {
   try {
     console.log('Received Slack OAuth callback with query params:', req.query);
+    console.log('Full callback URL:', `${req.protocol}://${req.headers.host}${req.originalUrl}`);
+    console.log('Expected redirect URI:', process.env.REDIRECT_URI);
     
     // Check for error response from Slack
     if (req.query.error) {
@@ -101,8 +103,13 @@ router.get('/slack/callback', async (req, res) => {
     
     // Exchange the code for tokens
     console.log('Exchanging code for token...');
-    await slackAuthService.exchangeCodeForToken(code, userId);
-    console.log('Successfully exchanged code for token');
+    try {
+      await slackAuthService.exchangeCodeForToken(code, userId);
+      console.log('Successfully exchanged code for token');
+    } catch (exchangeError) {
+      console.error('Token exchange error details:', exchangeError);
+      throw exchangeError;
+    }
     
     // Generate JWT token for the client
     const token = jwt.sign(

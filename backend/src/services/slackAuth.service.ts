@@ -22,12 +22,25 @@ export class SlackAuthService {
     try {
       const client = new WebClient();
       
+      console.log('OAuth exchange parameters:', {
+        client_id_prefix: this.clientId ? `${this.clientId.substring(0, 5)}...` : 'not set',
+        client_id_length: this.clientId?.length || 0,
+        has_client_secret: !!this.clientSecret,
+        redirect_uri: this.redirectUri,
+        code_length: code?.length || 0,
+        code_prefix: code ? `${code.substring(0, 5)}...` : 'not set'
+      });
+      
       const response = await client.oauth.v2.access({
         client_id: this.clientId,
         client_secret: this.clientSecret,
         code,
         redirect_uri: this.redirectUri
       });
+      
+      console.log('OAuth response keys:', Object.keys(response));
+      console.log('OAuth response has token:', !!response.access_token);
+      console.log('OAuth response has refresh token:', !!response.refresh_token);
       
       if (!response.access_token || !response.refresh_token) {
         throw new Error('Invalid OAuth response: missing tokens');
@@ -46,7 +59,20 @@ export class SlackAuthService {
       );
     } catch (error) {
       console.error('Error exchanging code for token:', error);
-      throw new Error('Failed to exchange code for token');
+      
+      // Try to get more details about the error
+      const errorDetails = {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        name: error instanceof Error ? error.name : 'Unknown',
+        stack: error instanceof Error ? error.stack : undefined,
+        isObject: typeof error === 'object' && error !== null,
+        hasResponse: typeof error === 'object' && error !== null && 'response' in error,
+        clientId: this.clientId ? `${this.clientId.substring(0, 5)}...${this.clientId.substring(this.clientId.length - 5)}` : 'not set',
+        redirectUri: this.redirectUri
+      };
+      
+      console.error('Error details:', JSON.stringify(errorDetails, null, 2));
+      throw new Error(`Failed to exchange code for token: ${errorDetails.message}`);
     }
   }
   
