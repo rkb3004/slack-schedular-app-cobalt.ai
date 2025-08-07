@@ -13,7 +13,19 @@ const app = express();
 // Middleware setup
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
+
+// Enhanced CORS configuration
+app.use(cors({
+  origin: [
+    'https://slack-schedular-app-cobalt-ai-frontend-cqgrfzqzo.vercel.app',
+    'https://slack-schedular-app-cobalt-ai-1.onrender.com',
+    'http://localhost:3000', // For local development
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(morgan('dev')); // Request logging
 
 // Root endpoint for API health check
@@ -43,23 +55,50 @@ app.use('/api/slack', slackRoutes);
 app.get('/api/slack/callback', async (req, res) => {
   console.log('Received callback on /api/slack/callback route - redirecting to auth controller');
   
-  // Import the handler directly
-  const slackAuthService = resolveInstance(SlackAuthService);
-  
   try {
     console.log('Slack OAuth callback received on alternate path:', { 
       query: req.query,
       hasCode: !!req.query.code,
-      hasError: !!req.query.error
+      hasError: !!req.query.error,
+      fullUrl: `${req.protocol}://${req.get('host')}${req.originalUrl}`
     });
     
-    // Redirect to the auth route
-    res.redirect(`/api/auth/slack/callback${req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : ''}`);
+    if (req.query.error) {
+      console.error('OAuth error received directly:', req.query.error);
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      return res.redirect(`${frontendUrl}/auth/error?message=${encodeURIComponent(req.query.error.toString())}`);
+    }
+    
+    if (!req.query.code) {
+      console.error('No code received in callback');
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      return res.redirect(`${frontendUrl}/auth/error?message=${encodeURIComponent('No authorization code received from Slack')}`);
+    }
+    
+    // Process the code directly instead of redirecting
+    const userId = require('uuid').v4();
+    const slackAuthService = resolveInstance(SlackAuthService);
+    
+    await slackAuthService.exchangeCodeForToken(req.query.code.toString(), userId);
+    
+    // Generate JWT token
+    const token = require('jsonwebtoken').sign(
+      { userId },
+      process.env.JWT_SECRET as string,
+      { expiresIn: '7d' }
+    );
+    
+    // Redirect to frontend with token
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const redirectUrl = `${frontendUrl}/auth/callback?token=${token}`;
+    
+    console.log('Redirecting to frontend with token:', redirectUrl);
+    res.redirect(redirectUrl);
   } catch (error) {
     console.error('Error in alternate callback path:', error);
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    res.redirect(`${frontendUrl}/auth/error?message=${encodeURIComponent(`Redirect error: ${errorMessage}`)}`);
+    res.redirect(`${frontendUrl}/auth/error?message=${encodeURIComponent(`Slack OAuth error: ${errorMessage}`)}`);
   }
 });
 
