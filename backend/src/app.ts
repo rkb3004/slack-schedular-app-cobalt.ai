@@ -11,7 +11,7 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 // Import dependencies after env vars are loaded
 import { container } from './container';
 import { startScheduler } from './services/scheduler';
-import routes from './routes';
+import routes from './routes/auth.routes';
 import { Database } from './db/database';
 
 // Initialize the app
