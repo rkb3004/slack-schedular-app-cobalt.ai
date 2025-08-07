@@ -5,7 +5,7 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 // Import the Database class directly
 import { Database } from './db/database';
-import routes from './routes';
+import routes from './routes/auth.routes';
 import { startScheduler } from './services/scheduler';
 
 // Load environment variables
