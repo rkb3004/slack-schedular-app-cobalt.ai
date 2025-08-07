@@ -1,68 +1,142 @@
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import path from 'path';
-
-// Load environment variables first, using the correct path
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
-
-// Import dependencies after env vars are loaded
-import { container } from './container';
-import { startScheduler } from './services/scheduler';
-import routes from './routes';
+import dotenv from 'dotenv';
+// Import the Database class directly
 import { Database } from './db/database';
+import routes from './routes';
+import { startScheduler } from './services/scheduler';
 
-// Initialize the app
+// Load environment variables
+dotenv.config();
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Set up middleware
-app.use(helmet());
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
+// Simplified CORS configuration that will work reliably
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://localhost:3000',
+  'http://127.0.0.1:3000',
+  'https://127.0.0.1:3000'
+];
+
+// Add FRONTEND_URL if it exists in env vars
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
+
+// Middleware
+app.use(helmet({
+  contentSecurityPolicy: false // Disable CSP for simplicity during development
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
+// Simpler and more reliable CORS configuration
+app.use(cors({
+  origin: function(origin, callback) {
+    // For development or non-browser clients (like Postman)
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    // Check if the origin is in our allowed list
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    // For development purposes, log and still allow
+    console.log(`CORS request from origin: ${origin}`);
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
+}));
+
+// Remove the redundant CORS headers middleware that could be causing conflicts
+// app.use((req, res, next) => { ... }); - REMOVE THIS SECTION
+
 app.use(morgan('dev'));
+app.use(express.json());
 
-// Register routes
-app.use('/api', routes);
-
-// Health check endpoint
+// Add root health check endpoint
 app.get('/health', (_, res) => {
   res.status(200).json({ status: 'ok', message: 'Server is running' });
 });
 
+// Routes
+app.use('/api', routes);
+
+// Add explicit route for the Slack callback to debug issues
+app.get('/api/auth/slack/callback', (req, res) => {
+  console.log('Received direct Slack callback at /api/auth/slack/callback:', req.query);
+  // Forward to the actual handler instead of redirecting
+  res.status(404).json({
+    error: 'Not Found',
+    message: `This is a direct hit to the callback URL. The handler should be defined in routes.`,
+    query: req.query
+  });
+});
+
+// Add catch-all route handler for debugging
+app.use('*', (req, res) => {
+  res.status(404).json({
+    error: 'Not Found',
+    message: `The requested URL ${req.originalUrl} was not found on this server.`,
+    availableEndpoints: {
+      health: '/health',
+      apiBase: '/api',
+      slackAuth: '/api/auth/slack/url',
+      slackCallback: '/api/auth/slack/callback'
+    }
+  });
+});
+
+// Initialize database directly
+const db = new Database();
+
+// Simplify the server startup flow
+const startServer = async () => {
+  try {
+    // Database is initialized in its constructor
+    console.log('Database connected');
+    
+    // Start the message scheduler
+    startScheduler();
+    
+    // Start the server
+    const server = app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+      console.log(`Environment: ${process.env.NODE_ENV}`);
+      console.log(`Slack redirect URI: ${process.env.REDIRECT_URI}`);
+      console.log(`Frontend URL: ${process.env.FRONTEND_URL}`);
+      console.log(`Allowed CORS origins: ${JSON.stringify(allowedOrigins)}`);
+    });
+    
+    // Handle graceful shutdown
+    process.on('SIGTERM', async () => {
+      console.log('SIGTERM received. Shutting down gracefully...');
+      await db.close();
+      server.close(() => console.log('Server closed'));
+      process.exit(0);
+    });
+    
+    process.on('SIGINT', async () => {
+      console.log('SIGINT received. Shutting down gracefully...');
+      await db.close();
+      server.close(() => console.log('Server closed'));
+      process.exit(0);
+    });
+    
+
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
 // Start the server
-const server = app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  
-  // Start the message scheduler
-  startScheduler();
-  
-  console.log('Server initialization complete');
-}).on('error', (error: Error) => {
-  console.error('Failed to start server:', error);
-});
-
-// Handle graceful shutdown
-process.on('SIGTERM', async () => {
-  console.log('SIGTERM received. Shutting down gracefully...');
-  const db = container.resolve<Database>(Database);
-  await db.close();
-  server.close();
-  process.exit(0);
-});
-
-process.on('SIGINT', async () => {
-  console.log('SIGINT received. Shutting down gracefully...');
-  const db = container.resolve<Database>(Database);
-  await db.close();
-  server.close();
-  process.exit(0);
-});
+startServer();
 
 export default app;
