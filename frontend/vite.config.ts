@@ -16,7 +16,7 @@ export default defineConfig({
   },
   define: {
     // Replace placeholders in index.html with actual env vars
-    '%VITE_API_URL%': JSON.stringify(process.env.VITE_API_URL || 'https://slack-schedular-app-cobalt-ai.onrender.com'),
+    '%VITE_API_URL%': JSON.stringify(process.env.VITE_API_URL || 'https://slack-schedular-app-cobalt-ai-1.onrender.com'),
     // Make process.env available in the client
     'process.env': JSON.stringify(process.env),
   },

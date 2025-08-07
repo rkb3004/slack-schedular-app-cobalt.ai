@@ -10,7 +10,7 @@ module.exports = {
   
   // Set environment variables
   env: {
-    VITE_API_URL: "https://slack-schedular-app-cobalt-ai.onrender.com",
+    VITE_API_URL: "https://slack-schedular-app-cobalt-ai-1.onrender.com",
   },
   
   // Output directory configuration
@@ -19,7 +19,7 @@ module.exports = {
   // Build command configuration
   build: {
     env: {
-      VITE_API_URL: "https://slack-schedular-app-cobalt-ai.onrender.com",
+      VITE_API_URL: "https://slack-schedular-app-cobalt-ai-1.onrender.com",
     },
   },
 };

@@ -3,7 +3,7 @@
 
 // Default values
 const defaultConfig = {
-  API_URL: 'https://slack-schedular-app-cobalt-ai.onrender.com',
+  API_URL: 'https://slack-schedular-app-cobalt-ai-1.onrender.com',
   FALLBACK_API_URL: 'http://localhost:8080'
 };
 
