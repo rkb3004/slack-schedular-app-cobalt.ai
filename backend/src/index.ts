@@ -68,16 +68,7 @@ app.get('/health', (_, res) => {
 // Routes
 app.use('/api', routes);
 
-// Add explicit route for the Slack callback to debug issues
-app.get('/api/auth/slack/callback', (req, res) => {
-  console.log('Received direct Slack callback at /api/auth/slack/callback:', req.query);
-  // Forward to the actual handler instead of redirecting
-  res.status(404).json({
-    error: 'Not Found',
-    message: `This is a direct hit to the callback URL. The handler should be defined in routes.`,
-    query: req.query
-  });
-});
+// Remove the direct route handler for Slack callback since it will be handled by the router
 
 // Add catch-all route handler for debugging
 app.use('*', (req, res) => {
@@ -87,8 +78,15 @@ app.use('*', (req, res) => {
     availableEndpoints: {
       health: '/health',
       apiBase: '/api',
-      slackAuth: '/api/auth/slack/url',
-      slackCallback: '/api/auth/slack/callback'
+      slackAuth: '/api/slack/url',
+      slackCallback: '/api/slack/callback',
+      slackCallbackAlt: '/api/auth/slack/callback'
+    },
+    requestDetails: {
+      method: req.method,
+      url: req.url,
+      headers: req.headers,
+      query: req.query
     }
   });
 });
