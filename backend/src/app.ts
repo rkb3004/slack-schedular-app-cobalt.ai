@@ -1,68 +1,57 @@
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
-import helmet from 'helmet';
 import morgan from 'morgan';
-import path from 'path';
+import authRoutes from './routes/auth.routes';
+// Import your other route files
+// import otherRoutes from './routes/other.routes';
 
-// Load environment variables first, using the correct path
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
-
-// Import dependencies after env vars are loaded
-import { container } from './container';
-import { startScheduler } from './services/scheduler';
-import routes from './routes/auth.routes';
-import { Database } from './db/database';
-
-// Initialize the app
 const app = express();
-const PORT = process.env.PORT || 3001;
 
-// Set up middleware
-app.use(helmet());
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
-}));
+// Middleware setup
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(morgan('dev'));
+app.use(cors());
+app.use(morgan('dev')); // Request logging
 
-// Register routes
-app.use('/api', routes);
-
-// Health check endpoint
-app.get('/health', (_, res) => {
-  res.status(200).json({ status: 'ok', message: 'Server is running' });
+// Root endpoint for API health check
+app.get('/', (req, res) => {
+  res.json({
+    status: 'API is running',
+    version: '1.0.0',
+    timestamp: new Date().toISOString()
+  });
 });
 
-// Start the server
-const server = app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  
-  // Start the message scheduler
-  startScheduler();
-  
-  console.log('Server initialization complete');
-}).on('error', (error: Error) => {
-  console.error('Failed to start server:', error);
+// Route registrations
+// FIX: Register auth routes at /api/auth to match frontend expectations
+app.use('/api/auth', authRoutes);
+// Register other routes as needed
+// app.use('/api/other', otherRoutes);
+
+// Catch-all route for debugging 404s
+app.use('*', (req, res) => {
+  console.log(`404 - Route not found: ${req.originalUrl}`);
+  res.status(404).json({
+    error: 'Not Found',
+    message: `The requested URL ${req.originalUrl} was not found on this server.`,
+    availableRoutes: [
+      '/',
+      '/api/auth/health',
+      '/api/auth/slack/url',
+      '/api/auth/slack/callback',
+      '/api/auth/slack/debug'
+      // Add other available routes here
+    ]
+  });
 });
 
-// Handle graceful shutdown
-process.on('SIGTERM', async () => {
-  console.log('SIGTERM received. Shutting down gracefully...');
-  const db = container.resolve(Database) as Database;
-  await db.close();
-  server.close();
-  process.exit(0);
-});
-
-process.on('SIGINT', async () => {
-  console.log('SIGINT received. Shutting down gracefully...');
-  const db = container.resolve(Database) as Database;
-  await db.close();
-  server.close();
-  process.exit(0);
+// Error handling middleware
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Unhandled error:', err);
+  res.status(err.status || 500).json({
+    error: err.message || 'Internal Server Error',
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+  });
 });
 
 export default app;

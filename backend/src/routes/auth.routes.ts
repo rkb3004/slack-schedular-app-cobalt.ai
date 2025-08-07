@@ -7,6 +7,15 @@ import { SlackAuthService } from '../services/slackAuth.service';
 const router = Router();
 const slackAuthService = resolveInstance(SlackAuthService);
 
+// Add a health check endpoint for debugging route registration
+router.get('/health', (req, res) => {
+  res.json({ 
+    status: 'Auth routes are working!',
+    timestamp: new Date().toISOString(),
+    endpoints: ['slack/url', 'slack/callback', 'slack/debug']
+  });
+});
+
 // Generate OAuth URL - This endpoint will be /api/auth/slack/url
 router.get('/slack/url', (req, res) => {
   try {
