@@ -1,0 +1,1 @@
+{"version":3,"file":"channel.routes.js","sourceRoot":"","sources":["../../src/routes/channel.routes.ts"],"names":[],"mappings":";;;;;AAAA,qCAAiC;AACjC,qFAA4D;AAC5D,4CAA+C;AAC/C,sEAAkE;AAElE,MAAM,MAAM,GAAG,IAAA,gBAAM,GAAE,CAAC;AACxB,MAAM,eAAe,GAAG,IAAA,2BAAe,EAAC,kCAAe,CAAC,CAAC;AAGzD,MAAM,CAAC,GAAG,CAAC,GAAG,EAAE,yBAAc,EAAE,eAAe,CAAC,gBAAgB,CAAC,CAAC;AAElE,kBAAe,MAAM,CAAC"}

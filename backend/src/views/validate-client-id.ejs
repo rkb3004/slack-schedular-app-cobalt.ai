@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title><%= title %></title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+    pre { background: #f4f4f4; padding: 10px; border-radius: 5px; overflow: auto; }
+    .button { display: inline-block; background: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 20px; }
+    .warning { color: #ff9800; font-weight: bold; }
+    .error { color: #f44336; font-weight: bold; }
+    .success { color: #4caf50; font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+  </style>
+</head>
+<body>
+  <h1>Validate Slack Client ID</h1>
+  
+  <h2>Client ID Validation</h2>
+  <pre><%= JSON.stringify(validation, null, 2) %></pre>
+  
+  <h2>Test URLs</h2>
+  <div>
+    <h3>URL with Environment Variable Client ID</h3>
+    <pre><%= authUrl %></pre>
+    <a href="<%= authUrl %>" class="button">Test Environment Client ID</a>
+  </div>
+  
+  <div style="margin-top: 30px;">
+    <h3>URL with Hardcoded Client ID</h3>
+    <pre><%= manualAuthUrl %></pre>
+    <a href="<%= manualAuthUrl %>" class="button">Test Hardcoded Client ID</a>
+  </div>
+  
+  <h2>Troubleshooting Steps</h2>
+  <ol>
+    <li>Verify the client ID in your .env file matches exactly with what's in your Slack App settings</li>
+    <li>Check for any invisible characters or whitespace in your client ID</li>
+    <li>Try the hardcoded test link above to see if it works</li>
+    <li>If the hardcoded test works but the environment one doesn't, update your .env file</li>
+  </ol>
+</body>
+</html>

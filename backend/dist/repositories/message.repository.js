@@ -87,7 +87,6 @@ class MessageRepository {
         try {
             let query = `SELECT * FROM scheduled_messages`;
             try {
-                // Try with status column filter
                 const results = await this.db.query(`SELECT * FROM scheduled_messages WHERE status = $1 ORDER BY scheduledTime ASC`, [ScheduledMessage_1.MessageStatus.SCHEDULED]);
                 return results.map(row => ({
                     id: row.id,
@@ -100,7 +99,6 @@ class MessageRepository {
                 }));
             }
             catch (error) {
-                // Fallback to querying without status filter if column doesn't exist
                 console.log('Falling back to query without status filter due to:', error);
                 const results = await this.db.query(`SELECT * FROM scheduled_messages ORDER BY scheduledTime ASC`);
                 return results.map(row => ({
@@ -109,7 +107,7 @@ class MessageRepository {
                     channel: row.channel,
                     text: row.text,
                     scheduledTime: new Date(row.scheduledTime),
-                    status: ScheduledMessage_1.MessageStatus.SCHEDULED, // Default status
+                    status: ScheduledMessage_1.MessageStatus.SCHEDULED,
                     errorMessage: undefined
                 }));
             }
@@ -139,3 +137,4 @@ class MessageRepository {
     }
 }
 exports.MessageRepository = MessageRepository;
+//# sourceMappingURL=message.repository.js.map

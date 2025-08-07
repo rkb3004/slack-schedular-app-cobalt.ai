@@ -20,7 +20,6 @@ class MessageController {
             }
             catch (error) {
                 console.error('Error sending message:', error);
-                // Handle token/auth specific errors differently
                 if (error instanceof Error && error.message && (error.message.includes('token') ||
                     error.message.includes('auth') ||
                     error.message.includes('permission'))) {
@@ -116,3 +115,4 @@ class MessageController {
     }
 }
 exports.MessageController = MessageController;
+//# sourceMappingURL=message.controller.js.map

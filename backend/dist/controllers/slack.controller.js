@@ -33,7 +33,6 @@ class SlackController {
                 }
                 const accessToken = await this.slackAuthService.getAccessToken(req.userId);
                 const client = new web_api_1.WebClient(accessToken);
-                // Get conversations (channels) list
                 const result = await client.conversations.list({
                     types: 'public_channel,private_channel',
                     exclude_archived: true
@@ -50,7 +49,6 @@ class SlackController {
             }
             catch (error) {
                 console.error('Error fetching Slack channels:', error);
-                // Handle token/auth specific errors differently
                 if (typeof error === 'object' && error !== null && 'message' in error && typeof error.message === 'string' && (error.message.includes('token') ||
                     error.message.includes('auth') ||
                     error.message.includes('permission'))) {
@@ -70,7 +68,6 @@ class SlackController {
                     res.status(401).json({ error: 'User not authenticated' });
                     return;
                 }
-                // Try to get the access token, which will refresh if needed
                 await this.slackAuthService.getAccessToken(req.userId);
                 res.status(200).json({ connected: true });
             }
@@ -83,3 +80,4 @@ class SlackController {
     }
 }
 exports.SlackController = SlackController;
+//# sourceMappingURL=slack.controller.js.map

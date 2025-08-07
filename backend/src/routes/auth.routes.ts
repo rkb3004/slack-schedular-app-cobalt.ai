@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { resolveInstance } from '../container';
 import { SlackAuthService } from '../services/slackAuth.service';
 import { DebugController } from '../controllers/debug.controller';
+import { debugTokenExchange, getSlackScopesInfo } from '../controllers/auth.controller';
 
 const router = Router();
 const slackAuthService = resolveInstance(SlackAuthService);
@@ -14,7 +15,15 @@ router.get('/health', (req, res) => {
   res.json({ 
     status: 'Auth routes are working!',
     timestamp: new Date().toISOString(),
-    endpoints: ['slack/url', 'slack/callback', 'slack/debug', 'slack/test-url', 'slack/test-auth']
+    endpoints: [
+      'slack/url',
+      'slack/callback',
+      'slack/debug',
+      'slack/test-url', 
+      'slack/test-auth',
+      'slack/test-token-exchange',
+      'slack/scopes'
+    ]
   });
 });
 
@@ -55,13 +64,23 @@ router.get('/slack/url', (req, res) => {
     console.log('Client ID first 5 chars:', clientId?.substring(0, 5));
     console.log('Redirect URI:', redirectUri);
     
+    // Check for possible issues with client ID
+    console.log('Client ID raw value:', clientId);
+    console.log('Client ID trim check:', clientId?.trim() === clientId);
+    console.log('Client ID length check:', clientId?.length);
+    console.log('Client ID characters:', Array.from(clientId || '').map(c => c.charCodeAt(0)));
+    
+    // Check if there might be hidden characters
+    const cleanClientId = clientId?.trim();
+    
     // Build the URL with all components properly encoded
     const authUrl = `https://slack.com/oauth/v2/authorize` + 
-      `?client_id=${encodeURIComponent(clientId || '')}` + 
+      `?client_id=${encodeURIComponent(cleanClientId || '')}` + 
       `&scope=${encodeURIComponent(scope)}` + 
       `&redirect_uri=${encodeURIComponent(redirectUri || '')}`;
     
-    console.log('Generated Slack auth URL (partial):', authUrl.replace(clientId || '', 'CLIENT_ID_HIDDEN'));
+    console.log('Generated Slack auth URL (full for debugging):', authUrl);
+    console.log('Generated Slack auth URL (partial):', authUrl.replace(cleanClientId || '', 'CLIENT_ID_HIDDEN'));
     
     res.json({ authUrl });
   } catch (error) {
@@ -190,6 +209,12 @@ router.get('/slack/debug', debugController.getOAuthConfig);
 // Test endpoint to generate a Slack OAuth URL for direct testing
 router.get('/slack/test-url', debugController.generateTestUrl);
 
+// Debug endpoint to test the token exchange process
+router.get('/slack/test-token-exchange', debugTokenExchange);
+
+// Documentation endpoint for Slack scopes
+router.get('/slack/scopes', getSlackScopesInfo);
+
 // Visual test page for the Slack OAuth flow
 router.get('/slack/test-auth', (req, res) => {
   try {
@@ -197,8 +222,14 @@ router.get('/slack/test-auth', (req, res) => {
     const redirectUri = process.env.REDIRECT_URI;
     const scope = 'channels:read,chat:write,channels:history';
     
+    // Check and clean client ID
+    const cleanClientId = clientId?.trim();
+    console.log('Test page - Original client ID:', clientId);
+    console.log('Test page - Cleaned client ID:', cleanClientId);
+    console.log('Test page - Client ID length:', clientId?.length);
+    
     const authUrl = `https://slack.com/oauth/v2/authorize` + 
-      `?client_id=${encodeURIComponent(clientId || '')}` + 
+      `?client_id=${encodeURIComponent(cleanClientId || '')}` + 
       `&scope=${encodeURIComponent(scope)}` + 
       `&redirect_uri=${encodeURIComponent(redirectUri || '')}`;
     

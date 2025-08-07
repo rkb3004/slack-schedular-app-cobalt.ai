@@ -6,7 +6,6 @@ async function migrateDatabase() {
     console.log('Starting database migration...');
     const db = new database_1.Database();
     try {
-        // Check if status column exists in scheduled_messages
         const query = `
       SELECT EXISTS (
         SELECT 1
@@ -18,7 +17,6 @@ async function migrateDatabase() {
     `;
         const result = await db.query(query);
         const statusColumnExists = (_a = result[0]) === null || _a === void 0 ? void 0 : _a.exists;
-        // Add status and errorMessage columns if they don't exist
         if (!statusColumnExists) {
             console.log('Adding status and errorMessage columns to scheduled_messages table');
             await db.execute(`
@@ -39,5 +37,5 @@ async function migrateDatabase() {
         await db.close();
     }
 }
-// Run the migration
 migrateDatabase().catch(console.error);
+//# sourceMappingURL=migration.js.map

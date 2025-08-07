@@ -28,12 +28,10 @@ class MessageService {
     }
     async scheduleMessageForLater(userId, channel, text, scheduledTime) {
         try {
-            // Validate scheduled time is in the future
             if (scheduledTime.getTime() <= Date.now()) {
                 throw new Error('Scheduled time must be in the future');
             }
             const messageId = (0, uuid_1.v4)();
-            // Save message to database
             await this.messageRepository.saveScheduledMessage({
                 id: messageId,
                 userId,
@@ -85,8 +83,6 @@ class MessageService {
                 }
                 catch (error) {
                     console.error(`Failed to send scheduled message ${message.id}:`, error);
-                    // We don't delete the message, so it can be retried next time
-                    // But we could implement a retry count to avoid endless retries
                 }
             }
         }
@@ -96,3 +92,4 @@ class MessageService {
     }
 }
 exports.MessageService = MessageService;
+//# sourceMappingURL=message.service.js.map

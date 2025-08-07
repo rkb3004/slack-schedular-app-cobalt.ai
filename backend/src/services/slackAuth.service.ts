@@ -9,34 +9,56 @@ export class SlackAuthService {
   
   constructor(tokenRepository: TokenRepository) {
     this.tokenRepository = tokenRepository;
-    this.clientId = process.env.SLACK_CLIENT_ID || '';
-    this.clientSecret = process.env.SLACK_CLIENT_SECRET || '';
+    // Trim whitespace from credentials to avoid common issues
+    this.clientId = (process.env.SLACK_CLIENT_ID || '').trim();
+    this.clientSecret = (process.env.SLACK_CLIENT_SECRET || '').trim();
     this.redirectUri = process.env.REDIRECT_URI || '';
     
     if (!this.clientId || !this.clientSecret || !this.redirectUri) {
       console.warn('Missing Slack OAuth configuration. Please set SLACK_CLIENT_ID, SLACK_CLIENT_SECRET, and REDIRECT_URI');
     }
+    
+    // Log initialization for debugging
+    console.log('SlackAuthService initialized with:', {
+      hasClientId: !!this.clientId,
+      clientIdLength: this.clientId.length,
+      hasClientSecret: !!this.clientSecret,
+      clientSecretLength: this.clientSecret.length,
+      redirectUri: this.redirectUri
+    });
   }
   
   async exchangeCodeForToken(code: string, userId: string): Promise<void> {
     try {
       const client = new WebClient();
       
+      // Enhanced logging for troubleshooting
       console.log('OAuth exchange parameters:', {
         client_id_prefix: this.clientId ? `${this.clientId.substring(0, 5)}...` : 'not set',
         client_id_length: this.clientId?.length || 0,
         has_client_secret: !!this.clientSecret,
+        client_secret_length: this.clientSecret?.length || 0,
         redirect_uri: this.redirectUri,
         code_length: code?.length || 0,
-        code_prefix: code ? `${code.substring(0, 5)}...` : 'not set'
+        code_prefix: code ? `${code.substring(0, 5)}...` : 'not set',
+        timestamp: new Date().toISOString()
       });
       
-      const response = await client.oauth.v2.access({
+      // Prepare the request payload
+      const payload = {
         client_id: this.clientId,
         client_secret: this.clientSecret,
         code,
         redirect_uri: this.redirectUri
+      };
+      
+      console.log('Making OAuth token request with payload:', {
+        ...payload,
+        client_secret: '[REDACTED]' // Don't log the actual secret
       });
+      
+      // Make the token exchange request
+      const response = await client.oauth.v2.access(payload);
       
       console.log('OAuth response keys:', Object.keys(response));
       console.log('OAuth response has token:', !!response.access_token);

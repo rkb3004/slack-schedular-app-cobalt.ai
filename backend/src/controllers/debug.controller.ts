@@ -11,6 +11,10 @@ export class DebugController {
   
   getOAuthConfig = async (req: Request, res: Response): Promise<void> => {
     try {
+      // Generate the validator URL
+      const baseUrl = `${req.protocol}://${req.headers.host}`;
+      const validatorUrl = `${baseUrl}/validator/validate-client-id`;
+      
       // Collect all relevant environment variables for debugging
       const config = {
         SLACK_CLIENT_ID: process.env.SLACK_CLIENT_ID ? 
@@ -22,7 +26,7 @@ export class DebugController {
         SERVER_URL: process.env.SERVER_URL || 'Not set',
         // Computed URLs for verification
         generatedAuthUrl: process.env.SLACK_CLIENT_ID ? 
-          `https://slack.com/oauth/v2/authorize?client_id=${encodeURIComponent(process.env.SLACK_CLIENT_ID)}&scope=channels:read,chat:write,channels:history&redirect_uri=${encodeURIComponent(process.env.REDIRECT_URI || '')}` : 
+          `https://slack.com/oauth/v2/authorize?client_id=${encodeURIComponent(process.env.SLACK_CLIENT_ID?.trim() || '')}&scope=channels:read,chat:write,channels:history&redirect_uri=${encodeURIComponent(process.env.REDIRECT_URI || '')}` : 
           'Cannot generate: missing client ID',
         // Request info
         request: {
@@ -30,13 +34,19 @@ export class DebugController {
           originalUrl: req.originalUrl,
           baseUrl: req.baseUrl,
           protocol: req.protocol,
+        },
+        // Validation tool
+        validationTool: {
+          url: validatorUrl,
+          description: 'Use this tool to validate the client ID for whitespace or encoding issues'
         }
       };
       
       res.json({
         config,
         timestamp: new Date().toISOString(),
-        message: 'This endpoint provides configuration information for debugging OAuth issues'
+        message: 'This endpoint provides configuration information for debugging OAuth issues',
+        validatorUrl // Include the validator URL at the top level for easy access
       });
     } catch (error) {
       console.error('Debug endpoint error:', error);

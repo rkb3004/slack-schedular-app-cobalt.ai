@@ -3,9 +3,11 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import path from 'path';
 // Import the Database class directly
 import { Database } from './db/database';
 import routes from './routes/auth.routes';
+import validateRoutes from './routes/validate.routes';
 import { startScheduler } from './services/scheduler';
 
 // Load environment variables
@@ -140,8 +142,13 @@ app.get('/', (req, res) => {
   `);
 });
 
+// Configure EJS template engine
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
 // Routes
 app.use('/api', routes);
+app.use('/validator', validateRoutes);
 
 // Remove the direct route handler for Slack callback since it will be handled by the router
 

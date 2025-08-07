@@ -1,8 +1,11 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Database = void 0;
-const pg_promise_1 = require("pg-promise");
-const dotenv_1 = require("dotenv");
+const pg_promise_1 = __importDefault(require("pg-promise"));
+const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 class Database {
     constructor() {
@@ -19,7 +22,6 @@ class Database {
                 throw new Error('DATABASE_URL environment variable is not defined');
             }
             this.db = pgp(connectionString);
-            // Initialize tables
             await this.createTables();
             this.initialized = true;
             console.log('NeonDB connection established');
@@ -31,7 +33,6 @@ class Database {
     }
     async createTables() {
         try {
-            // Create slack_tokens table
             await this.db.none(`
         CREATE TABLE IF NOT EXISTS slack_tokens (
           userId TEXT PRIMARY KEY,
@@ -40,7 +41,6 @@ class Database {
           expiresAt TIMESTAMP WITH TIME ZONE NOT NULL
         )
       `);
-            // Check if the scheduled_messages table exists
             const tableExists = await this.db.oneOrNone(`
         SELECT EXISTS (
           SELECT 1
@@ -50,7 +50,6 @@ class Database {
         )
       `);
             if (tableExists && tableExists.exists) {
-                // Check if status column exists
                 const statusColumnExists = await this.db.oneOrNone(`
           SELECT EXISTS (
             SELECT 1
@@ -60,7 +59,6 @@ class Database {
             AND column_name = 'status'
           )
         `);
-                // Add status column if it doesn't exist
                 if (!statusColumnExists || !statusColumnExists.exists) {
                     console.log('Adding status column to scheduled_messages table');
                     await this.db.none(`
@@ -71,7 +69,6 @@ class Database {
                 }
             }
             else {
-                // Create scheduled_messages table with all columns
                 await this.db.none(`
           CREATE TABLE IF NOT EXISTS scheduled_messages (
             id TEXT PRIMARY KEY,
@@ -122,8 +119,6 @@ class Database {
         }
     }
     async close() {
-        // pgp doesn't have an explicit close method but we can
-        // use the IMain.end() method to properly shut down
         if (this.db.$pool) {
             await this.db.$pool.end();
             this.initialized = false;
@@ -132,3 +127,4 @@ class Database {
     }
 }
 exports.Database = Database;
+//# sourceMappingURL=database.js.map

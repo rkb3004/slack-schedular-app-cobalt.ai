@@ -2,8 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import authRoutes from './routes/auth.routes';
-// Import your other route files
-// import otherRoutes from './routes/other.routes';
+import messageRoutes from './routes/message.routes';
+import channelRoutes from './routes/channel.routes';
+import slackRoutes from './routes/slack.routes';
 
 const app = express();
 
@@ -23,10 +24,17 @@ app.get('/', (req, res) => {
 });
 
 // Route registrations
-// FIX: Register auth routes at /api/auth to match frontend expectations
+// Auth routes for Slack authentication and OAuth
 app.use('/api/auth', authRoutes);
-// Register other routes as needed
-// app.use('/api/other', otherRoutes);
+
+// Message routes for sending and scheduling messages
+app.use('/api/messages', messageRoutes);
+
+// Channel routes for listing Slack channels
+app.use('/api/channels', channelRoutes);
+
+// Slack-specific routes for API operations
+app.use('/api/slack', slackRoutes);
 
 // Catch-all route for debugging 404s
 app.use('*', (req, res) => {
@@ -39,8 +47,11 @@ app.use('*', (req, res) => {
       '/api/auth/health',
       '/api/auth/slack/url',
       '/api/auth/slack/callback',
-      '/api/auth/slack/debug'
-      // Add other available routes here
+      '/api/auth/slack/debug',
+      '/api/messages/send',
+      '/api/messages/schedule',
+      '/api/messages/scheduled',
+      '/api/slack/channels'
     ]
   });
 });

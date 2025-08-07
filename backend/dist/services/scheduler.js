@@ -1,8 +1,11 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.startScheduler = startScheduler;
 exports.stopScheduler = stopScheduler;
-const node_cron_1 = require("node-cron");
+const node_cron_1 = __importDefault(require("node-cron"));
 const message_service_1 = require("./message.service");
 const container_1 = require("../container");
 let scheduler = null;
@@ -11,7 +14,6 @@ function startScheduler() {
         console.log('Scheduler already running');
         return;
     }
-    // Run the task every minute to check for messages that need to be sent
     scheduler = node_cron_1.default.schedule('* * * * *', async () => {
         console.log('Checking for scheduled messages to send...');
         try {
@@ -31,3 +33,4 @@ function stopScheduler() {
         console.log('Message scheduler stopped');
     }
 }
+//# sourceMappingURL=scheduler.js.map
