@@ -15,7 +15,8 @@ import {
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { format } from 'date-fns';
-import api from '../api';
+import api from '../api/api';
+import { MESSAGE_ENDPOINTS } from '../api/config';
 
 interface ScheduledMessage {
   id: string;
@@ -35,7 +36,7 @@ const ScheduledMessagesList: React.FC = () => {
     setError(null);
     
     try {
-      const response = await api.get('/messages/scheduled');
+      const response = await api.get(MESSAGE_ENDPOINTS.SCHEDULED.replace(api.defaults.baseURL || '', ''));
       setMessages(response.data.messages);
     } catch (err: any) {
       console.error('Failed to fetch scheduled messages:', err);
@@ -53,7 +54,7 @@ const ScheduledMessagesList: React.FC = () => {
     setCancellingIds((prev) => new Set([...prev, id]));
     
     try {
-      await api.delete(`/messages/scheduled/${id}`);
+      await api.delete(MESSAGE_ENDPOINTS.CANCEL(id).replace(api.defaults.baseURL || '', ''));
       setMessages((prevMessages) => prevMessages.filter((msg) => msg.id !== id));
     } catch (err: any) {
       console.error('Failed to cancel message:', err);

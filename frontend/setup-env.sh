@@ -2,6 +2,18 @@
 
 echo "Setting up frontend environment..."
 
+# Create .env file with necessary environment variables
+echo "Creating .env file..."
+cat > .env << 'EOF'
+# Default API URL - without /api suffix
+VITE_API_URL=https://slack-schedular-app-cobalt-ai.onrender.com
+
+# Uncomment the following line to use local proxy
+# VITE_API_URL=http://localhost:8080
+EOF
+
+echo ".env file created successfully."
+
 # Fix tsconfig.json
 echo "Creating tsconfig.json"
 cat > tsconfig.json << 'EOF'

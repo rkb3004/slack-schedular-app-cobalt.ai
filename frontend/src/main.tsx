@@ -3,32 +3,63 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
 
-// Polyfill for process.env
-window.process = {
-  env: {
-    NODE_ENV: import.meta.env.MODE,
+console.log('Starting application...');
+
+// Initialize app
+const initApp = () => {
+  const rootElement = document.getElementById('root');
+  
+  // Check if root element exists
+  if (!rootElement) {
+    console.error('Root element not found');
+    
+    // Show error message if error element exists
+    const errorElement = document.getElementById('root-error');
+    if (errorElement) {
+      errorElement.style.display = 'block';
+    }
+    
+    // Hide loading indicator if it exists
+    const loadingElement = document.getElementById('loading');
+    if (loadingElement) {
+      loadingElement.style.display = 'none';
+    }
+    
+    return;
+  }
+
+  try {
+    // Create root and render app
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(
+      <React.StrictMode>
+        <App />
+      </React.StrictMode>
+    );
+    
+    console.log('App rendered successfully');
+    
+    // Hide loading indicator if it exists
+    const loadingElement = document.getElementById('loading');
+    if (loadingElement) {
+      loadingElement.style.display = 'none';
+    }
+  } catch (error) {
+    console.error('Failed to render application:', error);
+    
+    // Show error message if error element exists
+    const errorElement = document.getElementById('root-error');
+    if (errorElement) {
+      errorElement.style.display = 'block';
+    }
+    
+    // Hide loading indicator if it exists
+    const loadingElement = document.getElementById('loading');
+    if (loadingElement) {
+      loadingElement.style.display = 'none';
+    }
   }
 };
 
-console.log('Initializing React application');
-
-// Check if root element exists
-const rootElement = document.getElementById('root');
-console.log('Root element found:', !!rootElement);
-
-if (!rootElement) {
-  console.error('Root element with id "root" not found in the document');
-  const div = document.createElement('div');
-  div.id = 'root';
-  document.body.appendChild(div);
-  console.log('Created root element dynamically');
-}
-
-// Mount the application
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-);
-
-console.log('React application rendering complete');
+// Run the app initialization
+initApp();

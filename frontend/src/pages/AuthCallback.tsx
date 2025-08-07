@@ -1,57 +1,80 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation, Navigate } from 'react-router-dom';
-import { Box, Typography, CircularProgress } from '@mui/material';
-import { useAuth } from '../context/AuthContext';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Box, Typography, CircularProgress, Alert, Button } from '@mui/material';
+
+// Simple function to decode a JWT token without external dependencies
+function decodeJwt(token: string) {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64).split('').map(c => {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error('Error decoding JWT:', error);
+    return null;
+  }
+}
 
 const AuthCallback: React.FC = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [error, setError] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState<boolean>(true);
-  const { login } = useAuth();
-  const location = useLocation();
 
   useEffect(() => {
-    const processAuth = async () => {
+    const handleAuth = async () => {
       try {
-        const params = new URLSearchParams(location.search);
-        const token = params.get('token');
+        const token = searchParams.get('token');
         
         if (!token) {
-          setError('No authentication token received');
-          setIsProcessing(false);
-          return;
+          throw new Error('No authentication token received');
+        }
+
+        // Store token
+        localStorage.setItem('authToken', token);
+        
+        // Extract and store userId from the JWT
+        const decoded = decodeJwt(token);
+        if (decoded && decoded.userId) {
+          localStorage.setItem('userId', decoded.userId);
+          console.log('Authentication successful, user ID:', decoded.userId);
+        } else {
+          console.warn('Could not extract userId from token');
         }
         
-        // Call the login function from AuthContext
-        login(token);
-        setIsProcessing(false);
+        // Navigate to dashboard
+        navigate('/', { replace: true });
       } catch (err) {
-        console.error('Authentication error:', err);
-        setError('Failed to authenticate with Slack');
-        setIsProcessing(false);
+        console.error('Auth callback error:', err);
+        setError('Authentication failed. Please try again.');
       }
     };
 
-    processAuth();
-  }, [location, login]);
+    handleAuth();
+  }, [searchParams, navigate]);
 
-  if (!isProcessing && !error) {
-    return <Navigate to="/" />;
+  if (error) {
+    return (
+      <Box sx={{ mt: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+        <Button variant="contained" onClick={() => navigate('/')}>
+          Return to Home
+        </Button>
+      </Box>
+    );
   }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 8 }}>
-      {isProcessing ? (
-        <>
-          <CircularProgress />
-          <Typography variant="h6" sx={{ mt: 2 }}>
-            Completing authentication...
-          </Typography>
-        </>
-      ) : (
-        <Typography variant="h6" color="error">
-          {error}
-        </Typography>
-      )}
+      <CircularProgress size={40} />
+      <Typography variant="h6" sx={{ mt: 2 }}>
+        Completing Authentication...
+      </Typography>
     </Box>
   );
 };

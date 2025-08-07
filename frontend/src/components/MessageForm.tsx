@@ -16,7 +16,8 @@ import {
 } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { addMinutes } from 'date-fns';
-import api from '../api';
+import api from '../api/api';
+import { MESSAGE_ENDPOINTS, SLACK_ENDPOINTS } from '../api/config';
 
 interface Channel {
   id: string;
@@ -63,7 +64,7 @@ const MessageForm: React.FC = () => {
       setError(null);
       
       try {
-        const response = await api.get('/slack/channels');
+        const response = await api.get(SLACK_ENDPOINTS.CHANNELS.replace(api.defaults.baseURL || '', ''));
         setChannels(response.data.channels);
       } catch (err: any) {
         console.error('Failed to fetch channels:', err);
@@ -88,7 +89,7 @@ const MessageForm: React.FC = () => {
     setSuccess(null);
     
     try {
-      await api.post('/messages/send', {
+      await api.post(MESSAGE_ENDPOINTS.SEND.replace(api.defaults.baseURL || '', ''), {
         channel: selectedChannel,
         text: message
       });
@@ -116,7 +117,7 @@ const MessageForm: React.FC = () => {
     setSuccess(null);
     
     try {
-      await api.post('/messages/schedule', {
+      await api.post(MESSAGE_ENDPOINTS.SCHEDULE.replace(api.defaults.baseURL || '', ''), {
         channel: selectedChannel,
         text: message,
         scheduledTime: scheduledTime.toISOString()
